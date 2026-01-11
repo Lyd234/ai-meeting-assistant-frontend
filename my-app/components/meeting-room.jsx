@@ -114,6 +114,44 @@ export default function MeetingRoom({ callId, onLeave, chatClient }) {
     };
   }, [client, connectedUser, callId, onLeave, call, chatClient]);
 
+  useEffect(() => {
+    if (!call) return;
+    
+    const startBot = async () => {
+      const backendUrl = process.env.NEXT_PUBLIC_PYTHON_BACKEND;
+      
+      if (!backendUrl) {
+        console.warn('⚠️ NEXT_PUBLIC_PYTHON_BACKEND not configured');
+        return;
+      }
+      
+      try {
+        console.log('🤖 Starting meeting bot for call:', callId);
+        
+        const response = await fetch(`${backendUrl}/start-agent/${callId}`, {
+          method: 'POST',
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Bot started successfully:', data);
+        
+      } catch (error) {
+        console.error('❌ Failed to start bot:', error);
+        // Don't block the meeting if bot fails - just log the error
+      }
+    };
+    
+    // Delay to ensure call is fully set up
+    const timer = setTimeout(startBot, 3000);
+    
+    return () => clearTimeout(timer);
+    
+  }, [call, callId]);
+
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900">
